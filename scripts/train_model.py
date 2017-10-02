@@ -12,61 +12,48 @@ import tensorflow as tf
 from tensorflow.contrib.layers import flatten
 import preprocessing
 
-def LeNet5(x, num_classes, keep_prob, mu=0, sigma=0.1):
-    # Layer 1
-    #c1_W = tf.Variable(tf.truncated_normal([5,5,3,16],mean = mu, stddev= sigma))
-    #c1_b = tf.Variable(tf.zeros(16))
-    #c1_W = tf.get_variable('c1_W', [5,5,3,16],initializer=tf.truncated_normal_initializer)
-    #conv1 = tf.nn.conv2d(x,c1_W,strides=[1,1,1,1],padding='VALID')
-    #conv1 = tf.nn.bias_add(conv1,c1_b)
-    conv1 = tf.layers.conv2d(x, 16,kernel_size=[5,5], padding='valid', 
-                             activation=tf.nn.relu, kernel_initializer=tf.truncated_normal_initializer(stddev=sigma))
-    # Activation
-    #conv1 = tf.nn.relu(conv1)
-    conv1 = tf.nn.dropout(conv1,keep_prob)
-    # Pooling. Input = 28x28x16. Output = 14x14x16.
-    #pool1 = tf.nn.max_pool(conv1,ksize=[1,2,2,1],strides=[1,2,2,1],padding='VALID')
-    pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2)
+def LeNet5(x, num_classes, keep_prob, mu=0, sigma=0.01):
+    # Layer 1: Convolution: filter size 32
+    conv1 = tf.layers.conv2d(x, 32, 7, padding='valid', activation=tf.nn.relu, 
+                             kernel_initializer=tf.truncated_normal_initializer(stddev=sigma),
+                             kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+    # Pooling (2,2)
+    pool1 = tf.layers.max_pooling2d(conv1, pool_size=[2, 2], strides=2)
     
     # Layer 2: Convolutional. Output = 10x10x64.
-    #c2_W = tf.Variable(tf.truncated_normal([5,5,16,64],mean=mu, stddev= sigma))
-    #c2_b = tf.Variable(tf.zeros(64))
-    #conv2 = tf.nn.conv2d(pool1,c2_W,strides=[1,1,1,1],padding='VALID')
-    #conv2 = tf.nn.bias_add(conv2,c2_b)
-    conv2 = tf.layers.conv2d(conv1, 64, kernel_size=[5,5], padding='valid',
-                             activation=tf.nn.relu, kernel_initializer=tf.truncated_normal_initializer(stddev=sigma))
-    # Activation
-    #conv2 = tf.nn.relu(conv2)
-    conv2 = tf.nn.dropout(conv2, keep_prob)
-    # Pooling: Input = 10x10x64. Output = 5x5x64.
-    #pool2 = tf.nn.max_pool(conv2,ksize=[1,2,2,1],strides=[1,2,2,1],padding='VALID')
+    conv2 = tf.layers.conv2d(pool1, 64, 3, padding='valid', activation=tf.nn.relu, 
+                             kernel_initializer=tf.truncated_normal_initializer(stddev=sigma),
+                             kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+    # Maxpooling: (2,2)
     pool2 = tf.layers.max_pooling2d(conv2, pool_size=[2,2], strides=2)
-    # Flatten. Input = 5x5x64. Output = 1600.
-    flat = flatten(pool2)
+    
+    # Layer 3: Convolutional. filter size:128
+    conv3 = tf.layers.conv2d(pool2, 128, 3, padding='valid', activation=tf.nn.relu,
+                             kernel_initializer=tf.truncated_normal_initializer(stddev=sigma),
+                             kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+    # Pooling (2,2)
+    pool3 = tf.layers.max_pooling2d(conv3, pool_size=[2,2], strides=2)
+    
+    # Flatten. Input = 5x5x64. Output = 1600
+    flat = flatten(pool3)
     
     # Layer 3: Fully Connected. Input = 1600. Output = 400.
-    #fc1_W = tf.Variable(tf.truncated_normal([1600,400], mean= mu, stddev= sigma))
-    #fc1_b = tf.Variable(tf.zeros(400))
-    #fc1 = tf.add(tf.matmul(flat,fc1_W),fc1_b)
-    fc1 = tf.layers.dense(flat, 400, activation=tf.nn.relu,
-                          kernel_initializer=tf.truncated_normal_initializer(stddev=sigma))
-    # Activation
-    #fc1 = tf.nn.relu(fc1)
+#    fc1_W = tf.Variable(tf.truncated_normal([10816,400], mean= mu, stddev= sigma))
+#    fc1_b = tf.Variable(tf.zeros(400))
+#    fc1 = tf.add(tf.matmul(flat,fc1_W),fc1_b)
+    fc1 = tf.layers.dense(flat, 256, activation=tf.nn.relu,kernel_initializer=tf.truncated_normal_initializer(stddev=sigma))
     fc1 = tf.nn.dropout(fc1,keep_prob)
     
     # Layer 4: Fully Connected. Input = 400. Output = 100.
     #fc2_W = tf.Variable(tf.truncated_normal([400,100], mean= mu, stddev= sigma))
     #fc2_b = tf.Variable(tf.zeros(100))
     #fc2 = tf.add(tf.matmul(fc1,fc2_W),fc2_b)
-    fc2 = tf.layers.dense(fc1, 100, activation=tf.nn.relu,
-                          kernel_initializer=tf.truncated_normal_initializer(stddev=sigma))
-    # Activation
-    #fc2 = tf.nn.relu(fc2)
+    fc2 = tf.layers.dense(fc1, 128, activation=tf.nn.relu,kernel_initializer=tf.truncated_normal_initializer(stddev=sigma))
     fc2 = tf.nn.dropout(fc2, keep_prob)
     
     # Layer 5: Fully Connected. Input = 100. Output = 43.
     #fc3_W = tf.Variable(tf.truncated_normal([100,num_classes], mean= mu, stddev= sigma))
-    #fc3_b = tf.Variable(tf.zeros(43))
+    #fc3_b = tf.Variable(tf.zeros(num_classes))
     #fc3 = tf.add(tf.matmul(fc2,fc3_W),fc3_b)
     fc3 = tf.layers.dense(fc2, num_classes,kernel_initializer=tf.truncated_normal_initializer(stddev=sigma))
     # Activation
@@ -102,7 +89,7 @@ def run():
     datadir = os.path.join(pardir,'pictures')
     runsdir = os.path.join(curdir, 'runs')
     
-    epochs = 10
+    epochs = 20
     batch_size = 128
     
     # Get data
@@ -117,7 +104,8 @@ def run():
     train_op, cross_entropy_loss = optimize(logits, y_label, learning_rate_ph, num_classes)
     pred_class = tf.argmax(tf.nn.softmax(logits), axis=1)
     correct_prediction = tf.equal(pred_class, y_label)
-    accuracy = tf.reduce_mean(tf.cast(correct_prediction,tf.float32))
+    float_cast_pred = tf.cast(correct_prediction,tf.float32)
+    accuracy = tf.reduce_mean(float_cast_pred)
     #saver = tf.train.Saver()
     
     with tf.Session() as sess:
@@ -132,11 +120,17 @@ def run():
             samples = 0
             time_start = time.time()
             for images, labels in get_batches_fn(batch_size):
-                _, loss, acc = sess.run([train_op, cross_entropy_loss, accuracy], 
-                                        feed_dict={input_image: images, y_label: labels, prob: 0.8, learning_rate_ph:1e-4})
+                _, loss, acc, pred_y, act_y, float_pred = sess.run([train_op, cross_entropy_loss, accuracy, pred_class, y_label, float_cast_pred], 
+                                        feed_dict={input_image: images, y_label: labels, prob: 0.5, learning_rate_ph:1e-3})
+                #print('Images shape:',images.shape)
+                #print('pred_y', pred_y)
+                #print('act_y', act_y)
+                #print('float_cast_pred:', float_pred)
                 train_loss += loss
                 train_acc += acc
-                samples += images.shape[0]
+                samples += 1
+                #print('loss:', loss, 'train_loss:',train_loss)
+                #print('acc:', acc, 'train_acc:', train_acc)
                 
             total_time = time.time() - time_start
             print("EPOCH {} ...".format(i+1))

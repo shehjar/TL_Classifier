@@ -147,6 +147,7 @@ def gen_batch_function(data, image_shape):
                 translate_limit = [-10, 10]
                 rotate_limit = [-90, 90]
                 image = image_augmentation(resize_img, translate_limit,rotate_limit)
+                #image = resize_img
                 #normalizing image
                 image = normalizing(image)
                 if image_label == 'red':
